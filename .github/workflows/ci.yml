@@ -1,0 +1,35 @@
+name: PowerOps CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-test-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore PowerOps.slnx
+
+      - name: Build application
+        run: dotnet build PowerOps.slnx --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test PowerOps.slnx --configuration Release --no-build
+
+      - name: Build Docker image
+        run: docker build -t powerops-api:${{ github.sha }} .
