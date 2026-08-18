@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PowerOps.Api/PowerOps.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PowerOps.Api.Tests/PowerOps.Api.Tests.csproj" />
+  </Folder>
+</Solution>

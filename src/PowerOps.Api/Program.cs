@@ -78,3 +78,4 @@ record EnergySite(
     double CurrentProductionKw,
     double DailyProductionKwh
 );
+public partial class Program { }
