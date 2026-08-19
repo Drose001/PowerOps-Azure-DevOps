@@ -11,9 +11,35 @@ if (app.Environment.IsDevelopment())
 
 var sites = new List<EnergySite>
 {
-    new(1, "Tempe Solar Facility", "Tempe", "Arizona", "Online", 124.6, 645.3),
-    new(2, "Phoenix Solar Facility", "Phoenix", "Arizona", "Online", 152.8, 832.4),
-    new(3, "Mesa Solar Facility", "Mesa", "Arizona", "Warning", 67.2, 301.5)
+    new(
+        1,
+        "Tempe Solar Facility",
+        "Tempe",
+        "Arizona",
+        "Online",
+        124.6,
+        645.3
+    ),
+
+    new(
+        2,
+        "Phoenix Solar Facility",
+        "Phoenix",
+        "Arizona",
+        "Online",
+        152.8,
+        832.4
+    ),
+
+    new(
+        3,
+        "Mesa Solar Facility",
+        "Mesa",
+        "Arizona",
+        "Warning",
+        67.2,
+        301.5
+    )
 };
 
 app.MapGet("/", () =>
@@ -26,6 +52,7 @@ app.MapGet("/", () =>
     });
 });
 
+// Health endpoint used by automated tests and deployment monitoring.
 app.MapGet("/health", () =>
 {
     return Results.Ok(new
@@ -45,7 +72,10 @@ app.MapGet("/api/sites/{id:int}", (int id) =>
     var site = sites.FirstOrDefault(s => s.Id == id);
 
     return site is null
-        ? Results.NotFound(new { message = "Energy site not found." })
+        ? Results.NotFound(new
+        {
+            message = "Energy site not found."
+        })
         : Results.Ok(site);
 });
 
@@ -55,7 +85,10 @@ app.MapGet("/api/sites/{id:int}/production", (int id) =>
 
     if (site is null)
     {
-        return Results.NotFound(new { message = "Energy site not found." });
+        return Results.NotFound(new
+        {
+            message = "Energy site not found."
+        });
     }
 
     return Results.Ok(new
@@ -78,4 +111,5 @@ record EnergySite(
     double CurrentProductionKw,
     double DailyProductionKwh
 );
+
 public partial class Program { }
