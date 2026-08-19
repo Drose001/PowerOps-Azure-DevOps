@@ -4,6 +4,32 @@ PowerOps is a portfolio project that demonstrates how a modern .NET application 
 
 The project simulates a clean-energy operations platform used to monitor solar-energy facilities, production levels, system health, and operational status.
 
+# PowerOps — Azure DevOps Platform
+
+PowerOps is a portfolio project that demonstrates how a modern .NET application can be built, deployed, secured, and monitored using cloud and DevOps practices.
+
+The project simulates a clean-energy operations platform used to monitor solar-energy facilities, production levels, system health, and operational status.
+
+> **Note:** PowerOps is a fictional clean-energy platform created for educational and portfolio purposes. All facilities and production data are simulated.
+
+## Live Demo
+
+PowerOps is currently deployed as a containerized web service on Render.
+
+**Live API:** https://powerops-api.onrender.com
+
+### Public Endpoints
+
+- **Application Status:** https://powerops-api.onrender.com/
+- **Health Check:** https://powerops-api.onrender.com/health
+- **Energy Sites:** https://powerops-api.onrender.com/api/sites
+
+The application is packaged with Docker and automatically validated through a GitHub Actions CI workflow before deployment.
+
+## Project Goals
+
+This project is being developed to demonstrate hands-on experience with:
+
 ## Project Goals
 
 This project is being developed to demonstrate hands-on experience with:
