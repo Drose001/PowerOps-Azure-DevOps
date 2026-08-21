@@ -36,6 +36,9 @@ var weatherApiSecretName = 'WeatherApiKey'
 // PowerOps Docker image stored in Azure Container Registry
 var powerOpsImage = '${containerRegistry.properties.loginServer}/powerops-api:1.0'
 
+// Azure Monitor alert name
+var unhealthyAlertName = 'alert-powerops-unhealthy-${environmentName}'
+
 // ---------------------------------------------------------
 // Azure Built-In RBAC Roles
 // ---------------------------------------------------------
@@ -112,7 +115,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' = {
 
   properties: {
     tenantId: subscription().tenantId
-
     enableRbacAuthorization: true
     enableSoftDelete: true
     enablePurgeProtection: true
@@ -166,6 +168,57 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
 }
 
 // ---------------------------------------------------------
+// Azure Monitor Log Alert
+// Detects HTTP 500 or 503 responses
+// ---------------------------------------------------------
+
+resource unhealthyServiceAlert 'Microsoft.Insights/scheduledQueryRules@2025-01-01-preview' = {
+  name: unhealthyAlertName
+  location: location
+  kind: 'LogAlert'
+
+  properties: {
+    displayName: 'PowerOps unhealthy HTTP responses - ${environmentName}'
+    description: 'Alerts when PowerOps logs HTTP 500 or HTTP 503 responses.'
+    severity: 2
+    enabled: true
+
+    scopes: [
+      logAnalytics.id
+    ]
+
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+
+    criteria: {
+      allOf: [
+        {
+          query: '''
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s contains "responded 500" or Log_s contains "responded 503"
+'''
+
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+
+    autoMitigate: true
+    skipQueryValidation: true
+  }
+
+  tags: commonTags
+}
+
+// ---------------------------------------------------------
 // Azure Container Apps Environment
 // ---------------------------------------------------------
 
@@ -195,7 +248,7 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: containerAppName
   location: location
 
-  // Attach the managed identity to PowerOps
+  // Attach managed identity
   identity: {
     type: 'UserAssigned'
 
@@ -216,9 +269,7 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
       secrets: [
         {
           name: 'weather-api-key'
-
           keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${weatherApiSecretName}'
-
           identity: powerOpsIdentity.id
         }
       ]
@@ -266,11 +317,9 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
       containers: [
         {
           name: 'powerops-api'
-
           image: powerOpsImage
 
-          // Weather API key is supplied securely
-          // from Key Vault at runtime
+          // Secret supplied securely from Key Vault
           env: [
             {
               name: 'WeatherApi__ApiKey'
@@ -346,3 +395,5 @@ output containerAppsEnvironment string = containerEnvironment.name
 output containerAppName string = powerOpsContainerApp.name
 
 output containerAppFqdn string = powerOpsContainerApp.properties.configuration.ingress.fqdn
+
+output unhealthyAlertRuleName string = unhealthyServiceAlert.name
