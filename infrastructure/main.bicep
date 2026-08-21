@@ -27,13 +27,29 @@ var containerEnvironmentName = 'cae-powerops-${environmentName}'
 var containerAppName = 'ca-powerops-${environmentName}'
 var identityName = 'id-powerops-${environmentName}'
 
+// Key Vault names must be globally unique
+var keyVaultName = 'kv-${environmentName}-${substring(uniqueString(resourceGroup().id, environmentName), 0, 8)}'
+
+// Fictional secret name used for portfolio demonstration
+var weatherApiSecretName = 'WeatherApiKey'
+
 // PowerOps Docker image stored in Azure Container Registry
 var powerOpsImage = '${containerRegistry.properties.loginServer}/powerops-api:1.0'
 
-// Built-in AcrPull role
+// ---------------------------------------------------------
+// Azure Built-In RBAC Roles
+// ---------------------------------------------------------
+
+// AcrPull role
 var acrPullRoleDefinitionId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+)
+
+// Key Vault Secrets User role
+var keyVaultSecretsUserRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
 )
 
 // ---------------------------------------------------------
@@ -62,11 +78,12 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' =
 resource powerOpsIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
+
   tags: commonTags
 }
 
 // ---------------------------------------------------------
-// AcrPull RBAC Role Assignment
+// ACR Pull RBAC
 // ---------------------------------------------------------
 
 resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -80,6 +97,50 @@ resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 
   properties: {
     roleDefinitionId: acrPullRoleDefinitionId
+    principalId: powerOpsIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ---------------------------------------------------------
+// Azure Key Vault
+// ---------------------------------------------------------
+
+resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' = {
+  name: keyVaultName
+  location: location
+
+  properties: {
+    tenantId: subscription().tenantId
+
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    enablePurgeProtection: true
+
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+  }
+
+  tags: commonTags
+}
+
+// ---------------------------------------------------------
+// Key Vault Secrets User RBAC
+// ---------------------------------------------------------
+
+resource keyVaultSecretsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(
+    keyVault.id,
+    powerOpsIdentity.id,
+    keyVaultSecretsUserRoleDefinitionId
+  )
+
+  scope: keyVault
+
+  properties: {
+    roleDefinitionId: keyVaultSecretsUserRoleDefinitionId
     principalId: powerOpsIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
@@ -134,6 +195,7 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: containerAppName
   location: location
 
+  // Attach the managed identity to PowerOps
   identity: {
     type: 'UserAssigned'
 
@@ -146,6 +208,25 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
     environmentId: containerEnvironment.id
 
     configuration: {
+
+      // ---------------------------------------------------
+      // Secure Key Vault Secret Reference
+      // ---------------------------------------------------
+
+      secrets: [
+        {
+          name: 'weather-api-key'
+
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${weatherApiSecretName}'
+
+          identity: powerOpsIdentity.id
+        }
+      ]
+
+      // ---------------------------------------------------
+      // Azure Container Registry Authentication
+      // ---------------------------------------------------
+
       registries: [
         {
           server: containerRegistry.properties.loginServer
@@ -153,7 +234,15 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
         }
       ]
 
+      // ---------------------------------------------------
+      // Revision Strategy
+      // ---------------------------------------------------
+
       activeRevisionsMode: 'Single'
+
+      // ---------------------------------------------------
+      // Public Ingress
+      // ---------------------------------------------------
 
       ingress: {
         external: true
@@ -169,16 +258,34 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
       }
     }
 
+    // -----------------------------------------------------
+    // Container Configuration
+    // -----------------------------------------------------
+
     template: {
       containers: [
         {
           name: 'powerops-api'
+
           image: powerOpsImage
+
+          // Weather API key is supplied securely
+          // from Key Vault at runtime
+          env: [
+            {
+              name: 'WeatherApi__ApiKey'
+              secretRef: 'weather-api-key'
+            }
+          ]
 
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
           }
+
+          // -------------------------------------------------
+          // Application Health Check
+          // -------------------------------------------------
 
           probes: [
             {
@@ -199,6 +306,10 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
         }
       ]
 
+      // ---------------------------------------------------
+      // Autoscaling
+      // ---------------------------------------------------
+
       scale: {
         minReplicas: 1
         maxReplicas: 3
@@ -210,6 +321,7 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
 
   dependsOn: [
     acrPullRoleAssignment
+    keyVaultSecretsRoleAssignment
   ]
 }
 
@@ -218,9 +330,19 @@ resource powerOpsContainerApp 'Microsoft.App/containerApps@2026-01-01' = {
 // ---------------------------------------------------------
 
 output registryName string = containerRegistry.name
+
 output registryLoginServer string = containerRegistry.properties.loginServer
+
 output managedIdentityName string = powerOpsIdentity.name
+
+output keyVaultName string = keyVault.name
+
+output keyVaultUri string = keyVault.properties.vaultUri
+
 output logAnalyticsWorkspace string = logAnalytics.name
+
 output containerAppsEnvironment string = containerEnvironment.name
+
 output containerAppName string = powerOpsContainerApp.name
+
 output containerAppFqdn string = powerOpsContainerApp.properties.configuration.ingress.fqdn

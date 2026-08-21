@@ -1,0 +1,103 @@
+// =========================================================
+// PowerOps Azure Monitor / Log Analytics Queries
+// =========================================================
+
+
+// ---------------------------------------------------------
+// 1. Recent PowerOps application logs
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| project
+    TimeGenerated,
+    Environment = EnvironmentName_s,
+    App = ContainerAppName_s,
+    Revision = RevisionName_s,
+    Message = Log_s
+| order by TimeGenerated desc
+| take 100
+
+
+// ---------------------------------------------------------
+// 2. Find HTTP 500 errors
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s contains "responded 500"
+| project
+    TimeGenerated,
+    ContainerAppName_s,
+    RevisionName_s,
+    Log_s
+| order by TimeGenerated desc
+
+
+// ---------------------------------------------------------
+// 3. Find unhealthy service responses
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s contains "responded 503"
+| project
+    TimeGenerated,
+    ContainerAppName_s,
+    RevisionName_s,
+    Log_s
+| order by TimeGenerated desc
+
+
+// ---------------------------------------------------------
+// 4. Find HTTP 404 responses
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s contains "responded 404"
+| project
+    TimeGenerated,
+    ContainerAppName_s,
+    Log_s
+| order by TimeGenerated desc
+
+
+// ---------------------------------------------------------
+// 5. Container startup or platform errors
+// ---------------------------------------------------------
+
+ContainerAppSystemLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s contains "Error"
+    or Log_s contains "Timeout"
+    or Log_s contains "ContainerCrashing"
+    or Log_s contains "ErrImagePull"
+| project
+    TimeGenerated,
+    EnvironmentName_s,
+    ContainerAppName_s,
+    RevisionName_s,
+    Log_s
+| order by TimeGenerated desc
+
+
+// ---------------------------------------------------------
+// 6. Request activity by environment
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| where Log_s startswith "HTTP"
+| summarize RequestCount = count() by EnvironmentName_s
+| order by RequestCount desc
+
+
+// ---------------------------------------------------------
+// 7. Most recent revision logs
+// ---------------------------------------------------------
+
+ContainerAppConsoleLogs_CL
+| where ContainerAppName_s startswith "ca-powerops-"
+| summarize LatestLog = max(TimeGenerated) by RevisionName_s
+| order by LatestLog desc

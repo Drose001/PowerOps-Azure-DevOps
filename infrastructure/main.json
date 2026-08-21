@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "16648239089261350348"
+      "templateHash": "9298366689962619380"
     }
   },
   "parameters": {
@@ -45,7 +45,10 @@
     "containerEnvironmentName": "[format('cae-powerops-{0}', parameters('environmentName'))]",
     "containerAppName": "[format('ca-powerops-{0}', parameters('environmentName'))]",
     "identityName": "[format('id-powerops-{0}', parameters('environmentName'))]",
-    "acrPullRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+    "keyVaultName": "[format('kv-{0}-{1}', parameters('environmentName'), substring(uniqueString(resourceGroup().id, parameters('environmentName')), 0, 8))]",
+    "weatherApiSecretName": "WeatherApiKey",
+    "acrPullRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+    "keyVaultSecretsUserRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]"
   },
   "resources": [
     {
@@ -80,6 +83,38 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2026-02-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "enableRbacAuthorization": true,
+        "enableSoftDelete": true,
+        "enablePurgeProtection": true,
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        }
+      },
+      "tags": "[variables('commonTags')]"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), variables('keyVaultSecretsUserRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRoleDefinitionId')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
       ]
     },
@@ -129,6 +164,13 @@
       "properties": {
         "environmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvironmentName'))]",
         "configuration": {
+          "secrets": [
+            {
+              "name": "weather-api-key",
+              "keyVaultUrl": "[format('{0}secrets/{1}', reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2026-02-01').vaultUri, variables('weatherApiSecretName'))]",
+              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+            }
+          ],
           "registries": [
             {
               "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2025-04-01').loginServer]",
@@ -153,6 +195,12 @@
             {
               "name": "powerops-api",
               "image": "[format('{0}/powerops-api:1.0', reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), '2025-04-01').loginServer)]",
+              "env": [
+                {
+                  "name": "WeatherApi__ApiKey",
+                  "secretRef": "weather-api-key"
+                }
+              ],
               "resources": {
                 "cpu": "[json('0.5')]",
                 "memory": "1Gi"
@@ -184,6 +232,8 @@
         "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), variables('acrPullRoleDefinitionId')))]",
         "[resourceId('Microsoft.App/managedEnvironments', variables('containerEnvironmentName'))]",
         "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), variables('keyVaultSecretsUserRoleDefinitionId')))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
       ]
     }
@@ -200,6 +250,14 @@
     "managedIdentityName": {
       "type": "string",
       "value": "[variables('identityName')]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[variables('keyVaultName')]"
+    },
+    "keyVaultUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2026-02-01').vaultUri]"
     },
     "logAnalyticsWorkspace": {
       "type": "string",

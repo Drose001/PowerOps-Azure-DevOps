@@ -4,10 +4,35 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// ---------------------------------------------------------
+// Structured Request Logging
+// ---------------------------------------------------------
+
+app.Use(async (context, next) =>
+{
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    await next();
+
+    stopwatch.Stop();
+
+    app.Logger.LogInformation(
+        "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMilliseconds} ms",
+        context.Request.Method,
+        context.Request.Path,
+        context.Response.StatusCode,
+        stopwatch.ElapsedMilliseconds
+    );
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// ---------------------------------------------------------
+// Simulated PowerOps Energy Sites
+// ---------------------------------------------------------
 
 var sites = new List<EnergySite>
 {
@@ -42,6 +67,10 @@ var sites = new List<EnergySite>
     )
 };
 
+// ---------------------------------------------------------
+// Application Status
+// ---------------------------------------------------------
+
 app.MapGet("/", () =>
 {
     return Results.Ok(new
@@ -52,7 +81,10 @@ app.MapGet("/", () =>
     });
 });
 
-// Health endpoint used by automated tests and deployment monitoring.
+// ---------------------------------------------------------
+// Health Check
+// ---------------------------------------------------------
+
 app.MapGet("/health", () =>
 {
     return Results.Ok(new
@@ -62,10 +94,18 @@ app.MapGet("/health", () =>
     });
 });
 
+// ---------------------------------------------------------
+// Energy Sites
+// ---------------------------------------------------------
+
 app.MapGet("/api/sites", () =>
 {
     return Results.Ok(sites);
 });
+
+// ---------------------------------------------------------
+// Individual Energy Site
+// ---------------------------------------------------------
 
 app.MapGet("/api/sites/{id:int}", (int id) =>
 {
@@ -78,6 +118,10 @@ app.MapGet("/api/sites/{id:int}", (int id) =>
         })
         : Results.Ok(site);
 });
+
+// ---------------------------------------------------------
+// Production Information
+// ---------------------------------------------------------
 
 app.MapGet("/api/sites/{id:int}/production", (int id) =>
 {
@@ -101,6 +145,10 @@ app.MapGet("/api/sites/{id:int}/production", (int id) =>
 });
 
 app.Run();
+
+// ---------------------------------------------------------
+// Energy Site Model
+// ---------------------------------------------------------
 
 record EnergySite(
     int Id,
