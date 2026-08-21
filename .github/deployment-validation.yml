@@ -1,0 +1,19 @@
+name: PowerOps Deployment Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-production:
+    name: Validate Live PowerOps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate production deployment
+        shell: pwsh
+        run: |
+          ./scripts/validate-deployment.ps1 `
+            -BaseUrl "https://powerops-api.onrender.com"
