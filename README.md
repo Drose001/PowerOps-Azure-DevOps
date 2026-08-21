@@ -1,283 +1,214 @@
-# PowerOps — Azure DevOps Platform
+## Verified Results
 
-PowerOps is a portfolio project that demonstrates how a modern .NET application can be built, deployed, secured, and monitored using Microsoft Azure and DevOps practices.
+The following results were produced while building and testing PowerOps.
 
-The project simulates a clean-energy operations platform used to monitor solar-energy facilities, production levels, system health, and operational status.
+| Capability | Verified Result | Implementation |
+|---|---|---|
+| Live Deployment | ✅ Public API running | Render + Docker |
+| CI Pipeline | ✅ Successful | GitHub Actions |
+| Automated Tests | ✅ 4/4 passing | xUnit / .NET |
+| Docker Build | ✅ Successful | Docker |
+| Health Check | ✅ HTTP 200 | `/health` |
+| Deployment Validation | ✅ Passed | PowerShell |
+| Structured Logging | ✅ Working | ASP.NET Core |
+| Bicep Compilation | ✅ Successful | Azure Bicep |
+| Failure Detection | ✅ HTTP 503 caught | Automated tests |
+| Rollback Automation | ✅ Script implemented | PowerShell |
+| Canary Automation | ✅ Script implemented | PowerShell |
 
-# PowerOps — Azure DevOps Platform
+---
 
-PowerOps is a portfolio project that demonstrates how a modern .NET application can be built, deployed, secured, and monitored using cloud and DevOps practices.
+## CI/CD Evidence
 
-The project simulates a clean-energy operations platform used to monitor solar-energy facilities, production levels, system health, and operational status.
+PowerOps uses GitHub Actions to automatically build, test, and validate the Docker image.
 
-> **Note:** PowerOps is a fictional clean-energy platform created for educational and portfolio purposes. All facilities and production data are simulated.
+![Successful GitHub Actions pipeline](docs/images/github-actions-success.png)
 
-## Live Demo
+The successful workflow verifies:
 
-PowerOps is currently deployed as a containerized web service on Render.
+- .NET dependency restore
+- Application build
+- Automated integration tests
+- Docker image build
+
+Workflow definition:
+
+```text
+.github/workflows/ci.yml
+```
+
+---
+
+## Live Deployment Evidence
+
+PowerOps is running publicly as a Docker container on Render.
 
 **Live API:** https://powerops-api.onrender.com
 
-### Public Endpoints
+![PowerOps live deployment](docs/images/render-live.png)
 
-- **Application Status:** https://powerops-api.onrender.com/
-- **Health Check:** https://powerops-api.onrender.com/health
-- **Energy Sites:** https://powerops-api.onrender.com/api/sites
+Verified endpoints:
 
-The application is packaged with Docker and automatically validated through a GitHub Actions CI workflow before deployment.
-
-## Project Goals
-
-This project is being developed to demonstrate hands-on experience with:
-
-## Project Goals
-
-This project is being developed to demonstrate hands-on experience with:
-
-* C# and .NET Web APIs
-* REST API development
-* Git and GitHub
-* Docker containerization
-* Azure Container Apps
-* Azure Container Registry
-* Azure DevOps CI/CD pipelines
-* YAML pipelines
-* Infrastructure as Code using Bicep
-* Development, staging, and production environments
-* Azure Key Vault
-* Microsoft Entra ID and RBAC
-* Azure Monitor
-* Application Insights
-* Log Analytics and KQL
-* Automated testing
-* Deployment health checks
-* Release approvals
-* Canary deployments
-* Rollback procedures
-* Incident response
-* Root-cause analysis
-
-## Current Features
-
-The PowerOps API currently includes:
-
-* Application status endpoint
-* Health-check endpoint
-* Energy-site information
-* Solar production data
-* Multiple simulated Arizona energy facilities
-
-## API Endpoints
-
-### Application Status
-
-```http
+```text
 GET /
-```
-
-Returns basic information about the PowerOps application.
-
-### Health Check
-
-```http
 GET /health
-```
-
-Returns the current health of the application.
-
-Example:
-
-```json
-{
-  "status": "Healthy",
-  "timestamp": "2026-08-18T17:02:00Z"
-}
-```
-
-### Energy Sites
-
-```http
 GET /api/sites
 ```
 
-Returns all energy facilities.
+---
 
-Current demonstration facilities include:
+## Deployment Validation Evidence
 
-* Tempe Solar Facility
-* Phoenix Solar Facility
-* Mesa Solar Facility
+PowerOps includes an automated post-deployment validation script.
 
-### Energy Site
+![Successful deployment validation](docs/images/deployment-validation.png)
 
-```http
-GET /api/sites/{id}
-```
-
-Returns information about an individual energy facility.
-
-### Production Information
-
-```http
-GET /api/sites/{id}/production
-```
-
-Returns production information for an individual energy facility.
-
-## Planned Azure Architecture
+Actual validation result:
 
 ```text
-GitHub
-   |
-   v
-Azure DevOps
-   |
-   +-- Build
-   +-- Automated Tests
-   +-- Quality Checks
-   +-- Docker Build
-   |
-   v
-Azure Container Registry
-   |
-   v
-Development
-   |
-   v
-Staging
-   |
-   v
-Approval Gate
-   |
-   v
-Production
-   |
-   v
-Azure Container Apps
-   |
-   +-- Azure Key Vault
-   +-- Cosmos DB
-   +-- Azure Storage
-   +-- Application Insights
-   +-- Azure Monitor
-   +-- Log Analytics
+Application Status
+Status Code: 200
+PASSED
+
+Health Check
+Status Code: 200
+PASSED
+
+Energy Sites API
+Status Code: 200
+PASSED
+
+DEPLOYMENT VALIDATION PASSED
+PowerOps is healthy and ready for promotion.
 ```
 
-## Deployment Strategy
-
-PowerOps will use a multi-environment deployment strategy:
+Script:
 
 ```text
-Development
-     |
-     v
-Automated Validation
-     |
-     v
-Staging
-     |
-     v
-Approval
-     |
-     v
-Production
+scripts/validate-deployment.ps1
 ```
 
-The same tested application artifact will be promoted between environments to demonstrate a **build-once, deploy-many** approach.
+---
 
-## Monitoring and Reliability
+## Automated Testing Evidence
 
-The completed platform will demonstrate:
+PowerOps uses automated integration tests to validate API behavior.
 
-* Application health monitoring
-* Centralized application logs
-* Performance metrics
-* Azure Monitor alerts
-* Application Insights
-* KQL troubleshooting queries
-* Deployment validation
-* Rollback procedures
-* Simulated incident response
-* Root-cause analysis
+![PowerOps automated tests](docs/images/automated-tests.png)
 
-## Security
+Healthy build:
 
-Planned security controls include:
+```text
+Total tests: 4
+Succeeded: 4
+Failed: 0
+```
 
-* Azure Key Vault for secrets
-* Managed identities
-* Microsoft Entra ID
-* Role-Based Access Control (RBAC)
-* Secure configuration management
-* Environment separation
-* No secrets stored in source control
+Tests are located in:
 
-## Technology Stack
+```text
+tests/PowerOps.Api.Tests
+```
 
-**Application**
+---
 
-* C#
-* .NET
-* ASP.NET Core Web API
+## Docker Evidence
 
-**DevOps**
+PowerOps is packaged and executed as a Docker container.
 
-* Git
-* GitHub
-* Azure DevOps
-* Azure Pipelines
-* YAML
-* Docker
+![PowerOps Docker container](docs/images/docker-running.png)
 
-**Microsoft Azure**
+The container exposes:
 
-* Azure Container Apps
-* Azure Container Registry
-* Azure Key Vault
-* Azure Monitor
-* Application Insights
-* Log Analytics
-* Cosmos DB
-* Azure Storage
+```text
+8080
+```
 
-**Infrastructure as Code**
+and serves the PowerOps API from the same container image used for deployment.
 
-* Bicep
+---
 
-**Automation**
+## Infrastructure as Code Evidence
 
-* PowerShell
+Azure infrastructure is modeled using Bicep.
 
-## Project Status
+![Successful Bicep compilation](docs/images/bicep-build-success.png)
 
-🚧 **In Development**
+The following command successfully validates the infrastructure template:
 
-Current milestone:
+```powershell
+az bicep build --file infrastructure/main.bicep
+```
 
-* [x] Create PowerOps .NET API
-* [x] Create application status endpoint
-* [x] Create energy-site endpoints
-* [x] Create health-check endpoint
-* [ ] Initialize Git repository
-* [ ] Publish project to GitHub
-* [ ] Add automated tests
-* [ ] Dockerize application
-* [ ] Create Azure infrastructure with Bicep
-* [ ] Deploy to Azure Container Apps
-* [ ] Create Azure DevOps CI/CD pipeline
-* [ ] Configure development environment
-* [ ] Configure staging environment
-* [ ] Configure production environment
-* [ ] Add Key Vault
-* [ ] Configure RBAC
-* [ ] Add Application Insights
-* [ ] Configure Azure Monitor alerts
-* [ ] Create KQL queries
-* [ ] Implement canary deployment
-* [ ] Simulate deployment failure
-* [ ] Perform rollback
-* [ ] Complete incident root-cause analysis
+The Bicep architecture models:
 
-## Purpose
+- Azure Container Registry
+- Azure Container Apps
+- Managed Identity
+- RBAC
+- Azure Key Vault
+- Log Analytics
+- Azure Monitor alerts
+- Health probes
+- Autoscaling
 
-This project is a hands-on DevOps portfolio demonstration designed to show practical experience building and operating a cloud application using Azure, automation, CI/CD, security, observability, and modern deployment practices.
+> These Azure resources are currently modeled in Infrastructure as Code and are not deployed to an Azure subscription.
+
+---
+
+## Incident Detection Evidence
+
+PowerOps includes a controlled failure simulation.
+
+The `/health` endpoint was intentionally changed from HTTP `200` to HTTP `503`.
+
+![PowerOps automated failure detection](docs/images/incident-test-failure.png)
+
+The automated test detected the unhealthy application:
+
+```text
+Expected: OK
+Actual: ServiceUnavailable
+
+Total tests: 4
+Succeeded: 3
+Failed: 1
+```
+
+After correcting the problem:
+
+```text
+Total tests: 4
+Succeeded: 4
+Failed: 0
+```
+
+Full incident documentation:
+
+```text
+docs/incident-001.md
+```
+## Live Demo
+
+PowerOps is currently deployed as a Docker container on Render.
+
+**Live API**
+
+https://powerops-api.onrender.com
+
+### Public Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `/` | Application status |
+| `/health` | Deployment and service health |
+| `/api/sites` | Simulated energy facilities |
+| `/api/sites/{id}` | Individual facility |
+| `/api/sites/{id}/production` | Facility production data |
+
+Examples:
+
+```text
+https://powerops-api.onrender.com/
+https://powerops-api.onrender.com/health
+https://powerops-api.onrender.com/api/sites
