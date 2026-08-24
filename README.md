@@ -1,4 +1,4 @@
-## Verified Results
+Verified Results
 
 The following results were produced while building and testing PowerOps.
 
@@ -18,7 +18,7 @@ The following results were produced while building and testing PowerOps.
 
 ---
 
-## CI/CD Evidence
+CI/CD Evidence
 
 PowerOps uses GitHub Actions to automatically build, test, and validate the Docker image.
 
@@ -212,3 +212,4 @@ Examples:
 https://powerops-api.onrender.com/
 https://powerops-api.onrender.com/health
 https://powerops-api.onrender.com/api/sites
+
